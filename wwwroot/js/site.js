@@ -1,13 +1,16 @@
-// Provided by Template
+const uri = 'api/todoitems';
+let todos = [];
+let ajaxEnabled = false;
+let dataTable = null;
+
 window.addEventListener('DOMContentLoaded', event => {
 
   // Toggle the side navigation
   const sidebarToggle = document.body.querySelector('#sidebarToggle');
   if (sidebarToggle) {
-      // Uncomment Below to persist sidebar toggle between refreshes
-      // if (localStorage.getItem('sb|sidebar-toggle') === 'true') {
-      //     document.body.classList.toggle('sb-sidenav-toggled');
-      // }
+      if (localStorage.getItem('sb|sidebar-toggle') === 'true') {
+          document.body.classList.toggle('sb-sidenav-toggled');
+      }
       sidebarToggle.addEventListener('click', event => {
           event.preventDefault();
           document.body.classList.toggle('sb-sidenav-toggled');
@@ -15,11 +18,18 @@ window.addEventListener('DOMContentLoaded', event => {
       });
   }
 
-});
+  const ajaxToggle = document.getElementById('ajaxToggle');
+  if (ajaxToggle) {
+    ajaxToggle.addEventListener('change', event => {
+      toggleAJAX();
+    });
+  }
 
-const uri = 'api/todoitems';
-let todos = [];
-let ajaxEnabled = false;
+  const dataTableHtml = document.getElementById('datatablesSimple');
+  if (dataTableHtml) {
+    dataTable = new simpleDatatables.DataTable(dataTableHtml);
+  }
+});
 
 document.addEventListener('DOMContentLoaded', function () {
   var checkbox = document.querySelector('input[type="checkbox"]');
@@ -33,10 +43,13 @@ function getIPAddress() {
   fetch("api/IPAddress")
     .then(response => response.json())
     .then(data => {
-      if (data["ipAddress"] == "10.0.0.5") {
-        document.getElementById("ip_address_span").innerHTML=data["ipAddress"] + " (Proxy)";
+      let ipString = "Accessing site from: ";
+      if (data["ipAddress"] == "##PROXY_IP##") {
+        document.getElementById("ip_card").classList.add("bg-success");
+        document.getElementById("ip_address_span").innerHTML=ipString + data["ipAddress"] + " (Proxy)";
       } else {
-        document.getElementById("ip_address_span").innerHTML=data["ipAddress"] + " (Not Proxy)";
+        document.getElementById("ip_card").classList.add("bg-warning");
+        document.getElementById("ip_address_span").innerHTML=ipString + data["ipAddress"] + " (Not Proxy)";
       }        
     })
     .catch(error => console.error("unable to get ip address.", error));
@@ -72,9 +85,10 @@ function addItem() {
 
   if (ajaxEnabled) {
     const xhr = new XMLHttpRequest();
-    xhr.onload = function () {
+    xhr.onload = function (event) {
       if (xhr.status >= 200 && xhr.status < 300) {
         getItems();
+        _displayItem(JSON.parse(event.target.response));
         addNameTextbox.value = '';
       } else {
         console.error('Unable to add item.');
@@ -93,7 +107,8 @@ function addItem() {
       body: JSON.stringify(item)
     })
       .then(response => response.json())
-      .then(() => {
+      .then((data) => {
+        _displayItem(data);
         getItems();
         addNameTextbox.value = '';
       })
@@ -106,6 +121,13 @@ function deleteItem(id) {
     const xhr = new XMLHttpRequest();
     xhr.onload = function () {
       if (xhr.status >= 200 && xhr.status < 300) {
+        let rows = dataTable.dom.querySelectorAll("td");
+        rows.forEach(row => {
+          if(row.innerText == id) {
+            let index = row.parentNode.getAttribute("data-index");
+            dataTable.rows.remove(parseInt(index));
+          }
+        });
         getItems();
       } else {
         console.error('Unable to delete item.');
@@ -117,27 +139,23 @@ function deleteItem(id) {
     fetch(`${uri}/${id}`, {
       method: 'DELETE'
     })
-    .then(() => getItems())
+    .then(() => {
+      let rows = dataTable.dom.querySelectorAll("td");
+      rows.forEach(row => {
+        if(row.innerText == id) {
+          let index = row.parentNode.getAttribute("data-index");
+          dataTable.rows.remove(parseInt(index));
+        }
+      });
+      getItems();
+    })
     .catch(error => console.error('Unable to delete item.', error));
   }
 }
 
-function displayEditForm(id) {
-  const item = todos.find(item => item.id === id);
-  
-  document.getElementById('edit-name').value = item.name;
-  document.getElementById('edit-id').value = item.id;
-  document.getElementById('edit-isComplete').checked = item.isComplete;
-  document.getElementById('editForm').style.display = 'block';
-}
-
-function updateItem() {
-  const itemId = document.getElementById('edit-id').value;
-  const item = {
-    id: parseInt(itemId, 10),
-    isComplete: document.getElementById('edit-isComplete').checked,
-    name: document.getElementById('edit-name').value.trim()
-  };
+function updateItem(itemId) {
+  const item = todos.find(item => item.id === itemId);
+  item.isComplete = !item.isComplete;
 
   if (ajaxEnabled) {
     const xhr = new XMLHttpRequest();
@@ -164,19 +182,7 @@ function updateItem() {
     .catch(error => console.error('Unable to update item.', error));
   }
 
-  closeInput();
-
   return false;
-}
-
-function closeInput() {
-  document.getElementById('editForm').style.display = 'none';
-}
-
-function _displayCount(itemCount) {
-  const name = (itemCount === 1) ? 'to-do' : 'to-dos';
-
-  document.getElementById('counter').innerText = `${itemCount} ${name}`;
 }
 
 function toggleAJAX() {
@@ -187,43 +193,29 @@ function toggleAJAX() {
   }
 }
 
+function _displayItem(item) {
+  let deleteButton = document.createElement('input');
+  deleteButton.value = 'Delete';
+  deleteButton.type = 'button';
+  deleteButton.setAttribute('onclick', `deleteItem(${item.id})`);
+  deleteButton = deleteButton.outerHTML;
+
+  let isCompleteCheckbox = document.createElement('input');
+  isCompleteCheckbox.type = 'checkbox';
+  if(item.isComplete) {
+    isCompleteCheckbox.setAttribute("checked", "");
+  }
+  isCompleteCheckbox.setAttribute('onchange', `updateItem(${item.id})`);
+  isCompleteCheckbox = isCompleteCheckbox.outerHTML;
+
+  dataTable.rows.add([item.id, item.name, isCompleteCheckbox, deleteButton]);
+}
+
 function _displayItems(data) {
-  const tBody = document.getElementById('todos');
-  tBody.innerHTML = '';
-
-  _displayCount(data.length);
-
-  const button = document.createElement('button');
-
-  data.forEach(item => {
-    let isCompleteCheckbox = document.createElement('input');
-    isCompleteCheckbox.type = 'checkbox';
-    isCompleteCheckbox.disabled = true;
-    isCompleteCheckbox.checked = item.isComplete;
-
-    let editButton = button.cloneNode(false);
-    editButton.innerText = 'Edit';
-    editButton.setAttribute('onclick', `displayEditForm(${item.id})`);
-
-    let deleteButton = button.cloneNode(false);
-    deleteButton.innerText = 'Delete';
-    deleteButton.setAttribute('onclick', `deleteItem(${item.id})`);
-
-    let tr = tBody.insertRow();
-    
-    let td1 = tr.insertCell(0);
-    td1.appendChild(isCompleteCheckbox);
-
-    let td2 = tr.insertCell(1);
-    let textNode = document.createTextNode(item.name);
-    td2.appendChild(textNode);
-
-    let td3 = tr.insertCell(2);
-    td3.appendChild(editButton);
-
-    let td4 = tr.insertCell(3);
-    td4.appendChild(deleteButton);
-  });
-
+  if (!dataTable.hasRows) {
+    data.forEach(item => {
+      _displayItem(item);
+    });
+  }
   todos = data;
 }
