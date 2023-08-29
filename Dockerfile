@@ -16,4 +16,5 @@ RUN dotnet publish "sampleWebService.csproj" -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "sampleWebService.dll"]
+COPY entrypoint.sh entrypoint.sh
+ENTRYPOINT ["bash", "entrypoint.sh"]
