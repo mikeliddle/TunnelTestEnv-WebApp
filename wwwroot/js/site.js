@@ -33,10 +33,11 @@ window.addEventListener('DOMContentLoaded', event => {
 
 document.addEventListener('DOMContentLoaded', function () {
   var checkbox = document.querySelector('input[type="checkbox"]');
-
-  checkbox.addEventListener('change', function () {
-    toggleAJAX();
-  });
+  if(checkbox) {
+    checkbox.addEventListener('change', function () {
+      toggleAJAX();
+    });
+  }
 });
 
 function getIPAddress() {
