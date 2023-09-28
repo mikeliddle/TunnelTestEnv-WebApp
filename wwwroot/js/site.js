@@ -45,7 +45,7 @@ function getIPAddress() {
     .then(response => response.json())
     .then(data => {
       let ipString = "Accessing site from: ";
-      if (data["ipAddress"] == "##PROXY_IP##") {
+      if (data["ipAddress"] == "##PROXY_IP##" || data["ipAddress"] == "172.17.0.1") {
         document.getElementById("ip_card").classList.add("bg-success");
         document.getElementById("ip_address_span").innerHTML=ipString + data["ipAddress"] + " (Proxy)";
       } else {
