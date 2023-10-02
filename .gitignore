@@ -399,3 +399,6 @@ FodyWeavers.xsd
 
 # MacOS
 .DS_Store
+
+# Generated Directory for file uploads
+uploads

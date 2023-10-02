@@ -14,7 +14,7 @@ window.addEventListener('DOMContentLoaded', event => {
       sidebarToggle.addEventListener('click', event => {
           event.preventDefault();
           document.body.classList.toggle('sb-sidenav-toggled');
-          localStorage.setItem('sb|sidebar-toggle', document.body.classList.contains('sb-sidenav-toggled'));
+          // localStorage.setItem('sb|sidebar-toggle', document.body.classList.contains('sb-sidenav-toggled'));
       });
   }
 
@@ -219,4 +219,17 @@ function _displayItems(data) {
     });
   }
   todos = data;
+}
+
+function getFiles() {
+  fetch("api/file")
+    .then(response => response.json())
+    .then(data => {
+      // add all files in data to the datatable
+      
+      data.forEach(file => {
+        dataTable.rows.add([file]);
+      });
+    })
+    .catch(error => console.error("unable to get files.", error));
 }
