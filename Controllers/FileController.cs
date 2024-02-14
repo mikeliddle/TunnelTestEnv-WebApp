@@ -1,4 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+
 namespace TodoApi.Controllers
 {
     [Route("api/[controller]")]
@@ -10,11 +14,11 @@ namespace TodoApi.Controllers
         public async Task<ActionResult> Post()
         {
             var form = await this.Request.ReadFormAsync();
-            var file = form.Files.FirstOrDefault();
+            var files = form.Files;
 
-            if (file == null)
+            if (files.Count == 0)
             {
-                return BadRequest("No file found");
+                return BadRequest("No files found");
             }
 
             var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
@@ -23,11 +27,14 @@ namespace TodoApi.Controllers
                 Directory.CreateDirectory(uploadPath);
             }
 
-            var path = Path.Combine(uploadPath, file.FileName);
-
-            using (var stream = new FileStream(path, FileMode.Create))
+            foreach (var file in files)
             {
-                await file.CopyToAsync(stream);
+                var path = Path.Combine(uploadPath, file.FileName);
+
+                using (var stream = new FileStream(path, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
             }
 
             return Ok();

@@ -74,11 +74,11 @@
                         <div class="card mb-4">
                             <div class="card-body">
                                 <iframe name="dummyframe" style="display: none;"></iframe>
-                                <form action="/api/file" id="file_form" method="post" enctype="multipart/form-data" target="dummyframe">
+                                <form action="/api/file" id="file_form" method="post" enctype="multipart/form-data" target="dummyframe" onsubmit="submitForm(event)">
                                     <label for="file">Filename:</label>
-                                    <input type="file" name="file" id="file"><br>
+                                    <input type="file" name="file" id="file" multiple><br>
                                     <input type="submit" name="submit" value="Submit">
-                                  </form>
+                                </form>
                             </div>
                         </div>
                         <div class="card mb-4">
@@ -123,5 +123,30 @@
         <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js" crossorigin="anonymous"></script>
         <script src="js/site.js"></script>
         <script>getFiles();</script>
+        <script>
+            function submitForm(event) {
+                event.preventDefault();
+    
+                var formData = new FormData(event.target);
+    
+                fetch('/api/file', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(function(response) {
+                    if (response.ok) {
+                        // Refresh the page
+                        location.reload();
+                    } else {
+                        // Display an error message
+                        alert('Upload failed');
+                    }
+                })
+                .catch(function(error) {
+                    // Display an error message
+                    alert('Error: ' + error);
+                });
+            }
+        </script>
     </body>
 </html>
