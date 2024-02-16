@@ -73,10 +73,37 @@
                         </ol>
                         <div class="card mb-4">
                             <div class="card-body">
-                                <iframe name="dummyframe" style="display: none;"></iframe>
-                                <form action="/api/file" id="file_form" method="post" enctype="multipart/form-data" target="dummyframe" onsubmit="submitForm(event)">
-                                    <label for="file">Filename:</label>
+                                    <iframe name="dummyframe" style="display: none;"></iframe>
+                                    <form action="/api/file" id="uploadForm" method="post" enctype="multipart/form-data" target="dummyframe" onsubmit="submitForm(event)">
+                                        <label for="file">Filename:</label>
                                     <input type="file" name="file" id="file" multiple><br>
+                                
+                                    <label for="uploader">Uploader:</label>
+                                    <input type="text" id="uploader" name="uploader"><br>
+                                
+                                    <label for="weather">Weather:</label><br>
+                                    <input type="radio" id="sun" name="weather" value="sun">
+                                    <label for="sun">Sun</label><br>
+                                    <input type="radio" id="rain" name="weather" value="rain">
+                                    <label for="rain">Rain</label><br>
+                                    <input type="radio" id="snow" name="weather" value="snow">
+                                    <label for="snow">Snow</label><br>
+                                
+                                    <label for="dessert">Dessert:</label><br>
+                                    <input type="checkbox" id="Red Velvet Cake" name="dessert" value="Red Velvet Cake">
+                                    <label for="Red Velvet Cake">Red Velvet Cake</label><br>
+                                    <input type="checkbox" id="Peach Pie" name="dessert" value="Peach Pie">
+                                    <label for="Peach Pie">Peach Pie</label><br>
+                                    <input type="checkbox" id="Lemon Bars" name="dessert" value="Lemon Bars">
+                                    <label for="Lemon Bars">Lemon Bars</label><br>
+
+                                    <label for="country">Country:</label>
+                                    <select id="country" name="country">
+                                        <option value="usa">USA</option>
+                                        <option value="canada">Canada</option>
+                                        <option value="mexico">Mexico</option>
+                                    </select><br>
+                                
                                     <input type="submit" name="submit" value="Submit">
                                 </form>
                             </div>
@@ -87,22 +114,57 @@
                                 Uploaded Files
                             </div>
                             <div class="card-body">
-                                <table id="datatablesSimple">
+                                <table id="filesTable">
                                     <thead>
                                         <tr>
                                             <th>Name</th>
                                         </tr>
                                     </thead>
-                                    <tfoot>
-                                        <tr>
-                                            <th>Name</th>
-                                        </tr>
-                                    </tfoot>
                                     <tbody>
                                     </tbody>
                                 </table>
                             </div>
                         </div>
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="fas fa-table me-1"></i>
+                                Dessert Votes
+                            </div>
+                            <div class="card-body">
+                                <table id="dessertVotesTable">
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="fas fa-table me-1"></i>
+                            </div>
+                            <div class="card-body">
+                                <h1 id="weather-text" style="text-transform: uppercase;"></h1>
+                                <table id="weatherTable">
+                                    <tbody>
+                                        <tr>
+                                            <td><img id="weather-icon" src="" alt="Weather icon" /></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="fas fa-table me-1"></i>
+                                Authors
+                            </div>
+                            <div class="card-body">
+                                <table id="authorsList">
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
                     </div>
                 </main>
                 <footer class="py-4 bg-light mt-auto">
@@ -122,31 +184,139 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
         <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js" crossorigin="anonymous"></script>
         <script src="js/site.js"></script>
-        <script>getFiles();</script>
         <script>
-            function submitForm(event) {
-                event.preventDefault();
-    
-                var formData = new FormData(event.target);
-    
-                fetch('/api/file', {
-                    method: 'POST',
-                    body: formData
+        function getFiles() {
+            fetch('/api/file')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.text();
                 })
-                .then(function(response) {
-                    if (response.ok) {
-                        // Refresh the page
-                        location.reload();
+                .then(text => {
+                    if (text.trim()) {
+                        const data = JSON.parse(text);
+                        var table = document.getElementById('filesTable').getElementsByTagName('tbody')[0];
+                        table.innerHTML = '';
+                        data.files.forEach(file => {
+                            var row = table.insertRow();
+                            var cell = row.insertCell(0);
+                            cell.innerHTML = file;
+                        });
+
+                        var dessertVotesTable = document.getElementById('dessertVotesTable').getElementsByTagName('tbody')[0];
+                        dessertVotesTable.innerHTML = '';
+                        for (var dessert in data.dessertVotes) {
+                            var row = dessertVotesTable.insertRow();
+                            var cell1 = row.insertCell(0);
+                            var cell2 = row.insertCell(1);
+                            cell1.innerHTML = dessert;
+                            cell2.innerHTML = data.dessertVotes[dessert];
+                        }
+                        var authorsList = document.getElementById('authorsList');
+                    if (!data.authorsList || data.authorsList.length === 0) {
+                        console.log('authorsList is empty');
                     } else {
-                        // Display an error message
-                        alert('Upload failed');
+                        // Clear the table
+                        authorsList.innerHTML = '';
+
+                        // Create table header
+                        var thead = document.createElement('thead');
+                        var headerRow = thead.insertRow();
+                        var headers = ['Author', 'Country of Origin', 'Latest Update'];
+                        for (var header of headers) {
+                            var th = document.createElement('th');
+                            th.innerText = header;
+                            headerRow.appendChild(th);
+                        }
+                        authorsList.appendChild(thead);
+
+                        // Create table body
+                        var tbody = document.createElement('tbody');
+                        for (var author of data.authorsList) {
+                            var row = tbody.insertRow();
+                            var cell1 = row.insertCell(0);
+                            var cell2 = row.insertCell(1);
+                            var cell3 = row.insertCell(2);
+                            cell1.innerHTML = author.name;
+                            cell2.innerHTML = author.countryOfOrigin;
+                            // Convert timestamp to readable date
+                            var date = new Date(author.lastSubmissionTimestamp);
+                            cell3.innerHTML = date.toLocaleString();
+                        }
+                        authorsList.appendChild(tbody);
+                    }
+
+                        let weather = data.currentWeather;
+                        let iconSrc;
+
+                        switch (weather) {
+                            case 'rain':
+                                iconSrc = 'rain.jpeg';
+                                break;
+                            case 'sun':
+                                iconSrc = 'sun.jpeg';
+                                break;
+                            case 'snow':
+                                iconSrc = 'snow.jpeg';
+                                break;
+                            // Add more cases as needed...
+                            default:
+                                iconSrc = 'clear.jpeg';
+                        }
+
+                        document.getElementById('weather-icon').src = iconSrc;
+                        document.getElementById('weather-text').innerText = weather;
+
+                    } else {
+                        console.log('No response body!');
                     }
                 })
-                .catch(function(error) {
-                    // Display an error message
-                    alert('Error: ' + error);
+                .catch(error => console.error('Error:', error));
+        }
+        
+        async function submitForm(event) {
+            event.preventDefault();
+            var formData = new FormData(event.target);
+
+            try {
+                const response = await fetch('/api/file', {
+                    method: 'POST',
+                    body: formData
                 });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                } else {
+                    location.reload();
+                }
+
+                const text = await response.text();
+
+                if (text) {
+                    const data = JSON.parse(text);
+                    getFiles();
+                } else {
+                    console.log('No response body!');
+                }
+            } catch (error) {
+                console.error('Error:', error);
             }
+        }
+
+        function setupEventListeners() {
+            const form = document.querySelector('#uploadForm');
+            if (form) {
+                form.addEventListener('submit', submitForm);
+            } else {
+                console.error('Form not found');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', setupEventListeners);
+
+        getFiles();
+        event.target.reset();
         </script>
     </body>
 </html>
