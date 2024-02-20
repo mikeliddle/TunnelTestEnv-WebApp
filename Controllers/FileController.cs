@@ -89,21 +89,26 @@ namespace TodoApi.Controllers
                     await file.CopyToAsync(stream);
                 }
             }
-            // Access form data
             string uploaderName = form["uploader"];
-            string dessert = form["dessert"];  
+            string desserts = form["dessert"];  // Assuming this is a string like "dessert1,dessert2,dessert3"
             string weather = form["weather"];
             string country = form["country"];
 
+            // Split the desserts string into an array of individual desserts
+            string[] dessertArray = desserts.Split(',');
 
-            // Increment a vote counter for the type of dessert
-            if (this.dessertVotes.ContainsKey(dessert))
+            // Loop through the array and add each dessert individually
+            foreach (string dessert in dessertArray)
             {
-                this.dessertVotes[dessert] += 1;
-            }
-            else
-            {
-                this.dessertVotes[dessert] = 1;
+                // Increment a vote counter for the type of dessert
+                if (this.dessertVotes.ContainsKey(dessert))
+                {
+                    this.dessertVotes[dessert] += 1;
+                }
+                else
+                {
+                    this.dessertVotes[dessert] = 1;
+                }
             }
             // Update the weather
             currentWeather = weather;
