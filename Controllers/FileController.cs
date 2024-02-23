@@ -26,6 +26,7 @@ namespace TodoApi.Controllers
     {
         public string UploadPath { get; set; }
     }
+
     [Route("api/[controller]")]
     [ApiController]
     public class FileController : ControllerBase
@@ -36,6 +37,17 @@ namespace TodoApi.Controllers
         private string? currentWeather = "clear";
         private List<Author> authorsList = new List<Author> {};
         private FormData allData;
+        
+        private FormData CreateFormData()
+        {
+            return new FormData
+            {
+                Files = Directory.GetFiles(uploadPath).Select(e => Path.GetFileName(e)).ToArray(),
+                DessertVotes = dessertVotes,
+                CurrentWeather = currentWeather ?? "clear",
+                AuthorsList = authorsList
+            };
+        }
         private async Task InitializeFormTypes()
         {
             dessertVotes = new Dictionary<string, int>()
@@ -102,12 +114,21 @@ namespace TodoApi.Controllers
             IFormCollection form = await this.Request.ReadFormAsync();
             IFormFileCollection files = form.Files;
 
-            if (!Directory.Exists(uploadPath)) {
+             if (!Directory.Exists(uploadPath)) {
                 Directory.CreateDirectory(uploadPath);
             }
 
             foreach (IFormFile file in files)
             {
+                // File sanitization 
+                var fileExtension = Path.GetExtension(file.FileName).ToLower();
+                var allowedExtensions = new List<string> { ".jpg", ".png", ".gif", ".bmp", ".jpeg", ".txt"}; 
+
+                if (!allowedExtensions.Contains(fileExtension))
+                {
+                    continue;
+                }
+
                 string path = Path.Combine(uploadPath, file.FileName);
 
                 using (FileStream stream = new FileStream(path, FileMode.Create))
@@ -115,6 +136,7 @@ namespace TodoApi.Controllers
                     await file.CopyToAsync(stream);
                 }
             }
+
 
             string uploaderName = form.ContainsKey("uploader") ? form["uploader"] : string.Empty;
             string desserts = form.ContainsKey("dessert") ? form["dessert"] : string.Empty;
@@ -136,7 +158,7 @@ namespace TodoApi.Controllers
             }
             
             // Update the weather
-            currentWeather = weather;
+            currentWeather = weather ?? "clear";
 
             // If author is new add them, their country of origin and update latest submission timestamp
             if (string.IsNullOrEmpty(uploaderName)) {
@@ -160,16 +182,11 @@ namespace TodoApi.Controllers
             }
 
             // Update allData before serializing it
-            allData = new FormData
-            {
-                Files = Directory.GetFiles(uploadPath).Select(e => Path.GetFileName(e)).ToArray(),
-                DessertVotes = dessertVotes,
-                CurrentWeather = currentWeather ?? "clear",
-                AuthorsList = authorsList
-            };
+            allData = CreateFormData();
+
             // Serialize the allData object to JSON
             var json = JsonSerializer.Serialize(allData);
-            Console.WriteLine(json);
+
             // Write the JSON to the file
             await System.IO.File.WriteAllTextAsync(FilePath, json);
 
@@ -198,4 +215,6 @@ namespace TodoApi.Controllers
             };
         }
     }
+
 }
+

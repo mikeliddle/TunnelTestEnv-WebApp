@@ -14,64 +14,69 @@
     // Update the DOM with the fetched data
     function updateDOM(data) {
         if (data) {
-            const filesTable = document.getElementById('filesTable').getElementsByTagName('tbody')[0];
-            filesTable.innerHTML = '';
-            data.files.forEach((file) => {
-            createTableRow(filesTable, [file]);
-            });
-    
-            const dessertVotesTable = document.getElementById('dessertVotesTable').getElementsByTagName('tbody')[0];
-            dessertVotesTable.innerHTML = '';
-            Object.entries(data.dessertVotes).forEach(([dessert, votes]) => {
-                createTableRow(dessertVotesTable, [dessert, votes]);
-            });
-    
-            const authorsList = document.getElementById('authorsList');
-            if (!data.authorsList || data.authorsList.length === 0) {
-            console.log('authorsList is empty');
-            } else {
-            authorsList.innerHTML = '';
-    
-            const thead = document.createElement('thead');
-            const headerRow = thead.insertRow();
-            const headers = ['Author', 'Country of Origin', 'Latest Update'];
-            for (let header of headers) {
-                const th = document.createElement('th');
-                th.innerText = header;
-                headerRow.appendChild(th);
+                const filesTable = document.getElementById('filesTable').getElementsByTagName('tbody')[0];
+                filesTable.innerHTML = '';
+                data.files.forEach((file) => {
+                createTableRow(filesTable, [file]);
+                });
+        
+                const dessertVotesTable = document.getElementById('dessertVotesTable').getElementsByTagName('tbody')[0];
+                dessertVotesTable.innerHTML = '';
+                Object.entries(data.dessertVotes).forEach(([dessert, votes]) => {
+                    createTableRow(dessertVotesTable, [dessert, votes]);
+                });
+        
+                const authorsList = document.getElementById('authorsList');
+                if (!data.authorsList || data.authorsList.length === 0) {
+                    console.log('authorsList is empty');
+                } 
+                else 
+                {
+                    authorsList.innerHTML = '';
+            
+                    const thead = document.createElement('thead');
+                    const headerRow = thead.insertRow();
+                    const headers = ['Author', 'Country of Origin', 'Latest Update'];
+                    for (let header of headers) {
+                        const th = document.createElement('th');
+                        th.innerText = header;
+                        headerRow.appendChild(th);
+                    }
+                    authorsList.appendChild(thead);
+            
+                    const tbody = document.createElement('tbody');
+                    for (let author of data.authorsList) {
+                        const date = new Date(author.lastSubmissionTimestamp);
+                        createTableRow(tbody, [author.name, author.countryOfOrigin, date.toLocaleString()]);
+                    }
+                    authorsList.appendChild(tbody);
+                }
+
+                // Weather
+                let weather = data.currentWeather;
+                let iconSrc;
+                switch (weather) {
+                    case 'rain':
+                        iconSrc = '../rain.jpeg';
+                        break;
+                    case 'sun':
+                        iconSrc = '../sun.jpeg';
+                        break;
+                    case 'snow':
+                        iconSrc = '../snow.jpeg';
+                        break;
+                    default:
+                        weather = 'clear';
+                        iconSrc = '../clear.jpeg';
+                        break;
+                }
+                document.getElementById('weather-icon').src = iconSrc;
+                document.getElementById('weather-text').innerText = weather;
             }
-            authorsList.appendChild(thead);
-    
-            const tbody = document.createElement('tbody');
-            for (let author of data.authorsList) {
-                const date = new Date(author.lastSubmissionTimestamp);
-                createTableRow(tbody, [author.name, author.countryOfOrigin, date.toLocaleString()]);
-            }
-            authorsList.appendChild(tbody);
-            }
-            const weather = data.currentWeather;
-            let iconSrc;
-    
-            switch (weather) {
-                case 'rain':
-                iconSrc = '../rain.jpeg';
-                break;
-                case 'sun':
-                iconSrc = '../sun.jpeg';
-                break;
-                case 'snow':
-                iconSrc = '../snow.jpeg';
-                break;
-                default:
-                iconSrc = '../clear.jpeg';
-            }
-    
-            document.getElementById('weather-icon').src = iconSrc;
-            document.getElementById('weather-text').innerText = weather;
-        }
-        else {
-            console.log('No data');
-        }
+             else 
+             {
+                console.log('No data');
+             }
     };
     
     async function fetchRequest(url, options = {}) {
