@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -16,127 +17,156 @@ namespace TodoApi.Controllers
     }
     public class FormData
     {
-        public string[]? Files { get; set; }
-        public Dictionary<string, int>? DessertVotes { get; set; }
-        public string? CurrentWeather { get; set; }
-        public List<Author>? AuthorsList { get; set; }
+        public string[] Files { get; set; }
+        public Dictionary<string, int> DessertVotes { get; set; }
+        public string CurrentWeather { get; set; }
+        public List<Author> AuthorsList { get; set; }
     }
-
+    public class AppSettings
+    {
+        public string UploadPath { get; set; }
+    }
     [Route("api/[controller]")]
     [ApiController]
     public class FileController : ControllerBase
     {
-        
+        private string uploadPath;
         private const string FilePath = "formDataStorage.json";
-        private Dictionary<string, int>? dessertVotes = new Dictionary<string, int>();
+        private Dictionary<string, int> dessertVotes = new Dictionary<string, int>();
         private string? currentWeather = "clear";
         private List<Author> authorsList = new List<Author> {};
-        private dynamic allData;
-
+        private FormData allData;
         private async Task InitializeFormTypes()
         {
+            dessertVotes = new Dictionary<string, int>()
+            {
+                {"Red Velvet Cake", 0},
+                {"Peach Pie", 0},
+                {"Lemon Bars", 0}
+            };
+            authorsList = new List<Author>();
+            currentWeather = "clear";
+
             if (System.IO.File.Exists(FilePath))
             {
                 var json = await System.IO.File.ReadAllTextAsync(FilePath);
                 Console.WriteLine(json);
                 allData = JsonSerializer.Deserialize<FormData>(json);
-                dessertVotes = allData?.DessertVotes ?? new Dictionary<string, int>();
-                authorsList = allData?.AuthorsList ?? new List<Author>();
-                currentWeather = allData?.CurrentWeather ?? "clear";
+                dessertVotes = allData?.DessertVotes ?? dessertVotes;
+                authorsList = allData?.AuthorsList ?? authorsList;
+                currentWeather = allData?.CurrentWeather ?? currentWeather;
+            } 
+            else 
+            {
+                allData = new FormData
+                {
+                    Files = new string[] {},
+                    DessertVotes = dessertVotes,
+                    CurrentWeather = currentWeather,
+                    AuthorsList = authorsList
+                };
+                var json = JsonSerializer.Serialize(allData);
+                await System.IO.File.WriteAllTextAsync(FilePath, json);
+            }
+        }
+        private void IncrementDessertVote(string dessert) {
+            if (this.dessertVotes.ContainsKey(dessert))
+            {
+                this.dessertVotes[dessert] += 1;
             }
             else
             {
-                dessertVotes = new Dictionary<string, int>()
-                {
-                    {"Red Velvet Cake", 0},
-                    {"Peach Pie", 0},
-                    {"Lemon Bars", 0}
-                };
-                authorsList = new List<Author>();
-                currentWeather = "clear";
+                this.dessertVotes[dessert] = 1;
             }
         }
-
-        public FileController()
+        public FileController(IOptions<AppSettings> settings)
         {
-            InitializeFormTypes().Wait();
+            uploadPath = string.IsNullOrEmpty(settings?.Value?.UploadPath) 
+                ? "wwwroot/upload" 
+                : settings.Value.UploadPath;
+
+            try
+            {
+                InitializeFormTypes().Wait();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
         }
 
         // POST: api/File
         [HttpPost]
         public async Task<ActionResult> Post()
         {
-            var form = await this.Request.ReadFormAsync();
-            var files = form.Files;
+            IFormCollection form = await this.Request.ReadFormAsync();
+            IFormFileCollection files = form.Files;
 
-            if (files.Count == 0)
-            {
-                return BadRequest("No files found");
-            }
-
-            var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
-            
             if (!Directory.Exists(uploadPath)) {
                 Directory.CreateDirectory(uploadPath);
             }
 
-            foreach (var file in files)
+            foreach (IFormFile file in files)
             {
-                var path = Path.Combine(uploadPath, file.FileName);
+                string path = Path.Combine(uploadPath, file.FileName);
 
-                using (var stream = new FileStream(path, FileMode.Create))
+                using (FileStream stream = new FileStream(path, FileMode.Create))
                 {
                     await file.CopyToAsync(stream);
                 }
             }
-            string uploaderName = form["uploader"];
-            string desserts = form["dessert"];  // Assuming this is a string like "dessert1,dessert2,dessert3"
-            string weather = form["weather"];
-            string country = form["country"];
+
+            string uploaderName = form.ContainsKey("uploader") ? form["uploader"] : string.Empty;
+            string desserts = form.ContainsKey("dessert") ? form["dessert"] : string.Empty;
+            string weather = form.ContainsKey("weather") ? form["weather"] : string.Empty;
+            string country = form.ContainsKey("country") ? form["country"] : string.Empty;
 
             // Split the desserts string into an array of individual desserts
             string[] dessertArray = desserts.Split(',');
 
             // Loop through the array and add each dessert individually
-            foreach (string dessert in dessertArray)
+            foreach (var dessert in dessertArray)
             {
-                // Increment a vote counter for the type of dessert
-                if (this.dessertVotes.ContainsKey(dessert))
-                {
-                    this.dessertVotes[dessert] += 1;
-                }
-                else
-                {
-                    this.dessertVotes[dessert] = 1;
+                if (string.IsNullOrEmpty(dessert)) {
+                    continue;
+                } 
+                else {
+                    IncrementDessertVote(dessert);
                 }
             }
+            
             // Update the weather
             currentWeather = weather;
 
             // If author is new add them, their country of origin and update latest submission timestamp
-            var author = authorsList.Find(a => a.Name == uploaderName);
-            if (author == null)
-            {
-                authorsList.Add(new Author 
-                { 
-                    Name = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(uploaderName),
-                    CountryOfOrigin = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(country),
-                    LastSubmissionTimestamp = DateTime.Now
-                }); 
-            }
-            else
-            {
-                author.LastSubmissionTimestamp = DateTime.Now;
+            if (string.IsNullOrEmpty(uploaderName)) {
+                Console.WriteLine("Uploader name is empty. Skipping author addition.");
+            } else {
+                var returnAuthor = authorsList.Find(a => a.Name == uploaderName);
+                if (returnAuthor == null)
+                {
+                    authorsList.Add(new Author 
+                    { 
+                        Name = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(uploaderName),
+                        CountryOfOrigin = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(country),
+                        LastSubmissionTimestamp = DateTime.Now
+                    }); 
+                }
+                else
+                {
+                    returnAuthor.LastSubmissionTimestamp = DateTime.Now;
+                    returnAuthor.CountryOfOrigin = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(country);
+                }
             }
 
             // Update allData before serializing it
-            allData = new
+            allData = new FormData
             {
-                DessertVotes = this.dessertVotes,
-                CurrentWeather = currentWeather,
+                Files = Directory.GetFiles(uploadPath).Select(e => Path.GetFileName(e)).ToArray(),
+                DessertVotes = dessertVotes,
+                CurrentWeather = currentWeather ?? "clear",
                 AuthorsList = authorsList
             };
-
             // Serialize the allData object to JSON
             var json = JsonSerializer.Serialize(allData);
             Console.WriteLine(json);
@@ -149,14 +179,15 @@ namespace TodoApi.Controllers
         // GET: api/File
         [HttpGet]
         public ActionResult<FormData> Get()
-        {
-            var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
-            
+        {            
             if (!Directory.Exists(uploadPath)) {
                 Directory.CreateDirectory(uploadPath);
+                // save the directory path to the appsettings.json
+                var json = JsonSerializer.Serialize(new { UploadPath = uploadPath });
+                System.IO.File.WriteAllText("appsettings.json", json);
             }
 
-            var files = Directory.GetFiles(uploadPath).Select(e => Path.GetFileName(e)).ToArray();
+            string[] files = Directory.GetFiles(uploadPath).Select(e => Path.GetFileName(e)).ToArray();
 
             return new FormData
             {
