@@ -142,15 +142,17 @@ namespace TodoApi.Controllers
             string? weather = form.ContainsKey("weather") ? form["weather"] : string.Empty;
             string? country = form.ContainsKey("country") ? form["country"] : string.Empty;
 
-            // Split the desserts string into an array of individual desserts
-            string[] strings = desserts.Split(',');
-            string[] dessertArray = strings.Select(s => s.Trim()).ToArray();
+            if (desserts != null) { 
+                // Split the desserts string into an array of individual desserts
+                string[] strings = desserts.Split(',');
+                string[] dessertArray = strings.Select(s => s.Trim()).ToArray();
 
-            // Loop through the array and add each dessert individually
-            foreach (var dessert in dessertArray)
-            {
-                if (!string.IsNullOrEmpty(dessert)) {
-                    IncrementDessertVote(dessert);
+                // Loop through the array and add each dessert individually
+                foreach (var dessert in dessertArray)
+                {
+                    if (!string.IsNullOrEmpty(dessert)) {
+                        IncrementDessertVote(dessert);
+                    }
                 }
             }
             
