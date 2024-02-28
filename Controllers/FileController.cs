@@ -6,27 +6,11 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Collections.Generic; 
 using System.Globalization;
+using static FormUpload.Models.FormUpload;
+using Microsoft.IdentityModel.Tokens;
 
 namespace TodoApi.Controllers
 {
-    public class Author
-    {
-        public string Name { get; set; }
-        public string CountryOfOrigin { get; set; }
-        public DateTime LastSubmissionTimestamp { get; set; }
-    }
-    public class FormData
-    {
-        public string[] Files { get; set; }
-        public Dictionary<string, int> DessertVotes { get; set; }
-        public string CurrentWeather { get; set; }
-        public List<Author> AuthorsList { get; set; }
-    }
-    public class AppSettings
-    {
-        public string UploadPath { get; set; }
-    }
-
     [Route("api/[controller]")]
     [ApiController]
     public class FileController : ControllerBase
@@ -34,15 +18,35 @@ namespace TodoApi.Controllers
         private string uploadPath;
         private const string FilePath = "formDataStorage.json";
         private Dictionary<string, int> dessertVotes = new Dictionary<string, int>();
-        private string? currentWeather = "clear";
+        private string currentWeather = "clear";
         private List<Author> authorsList = new List<Author> {};
         private FormData allData;
-        
-        private FormData CreateFormData()
+        private void EnsureDirectoryExists(string path)
+        {
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+        }
+        private async Task<FormData> ReadFormDataFromFile()
+        {
+            var json = await System.IO.File.ReadAllTextAsync(FilePath);
+            if (string.IsNullOrEmpty(json))
+            {
+                throw new Exception("File is empty");
+            }
+            return JsonSerializer.Deserialize<FormData>(json);
+        }
+        private async Task WriteFormDataToFile(FormData data)
+        {
+            var json = JsonSerializer.Serialize(data);
+            await System.IO.File.WriteAllTextAsync(FilePath, json);
+        }
+        private FormData CreateFormData(IFormFileCollection files, Dictionary<string, int> dessertVotes, string currentWeather, List<Author> authorsList)
         {
             return new FormData
             {
-                Files = Directory.GetFiles(uploadPath).Select(e => Path.GetFileName(e)).ToArray(),
+                Files = files.Select(f => f.FileName).ToArray(),
                 DessertVotes = dessertVotes,
                 CurrentWeather = currentWeather ?? "clear",
                 AuthorsList = authorsList
@@ -50,20 +54,12 @@ namespace TodoApi.Controllers
         }
         private async Task InitializeFormTypes()
         {
-            dessertVotes = new Dictionary<string, int>()
-            {
-                {"Red Velvet Cake", 0},
-                {"Peach Pie", 0},
-                {"Lemon Bars", 0}
-            };
-            authorsList = new List<Author>();
-            currentWeather = "clear";
+            // Initialize the upload directory
+            EnsureDirectoryExists(uploadPath);
 
             if (System.IO.File.Exists(FilePath))
             {
-                var json = await System.IO.File.ReadAllTextAsync(FilePath);
-                Console.WriteLine(json);
-                allData = JsonSerializer.Deserialize<FormData>(json);
+                allData = await ReadFormDataFromFile();
                 dessertVotes = allData?.DessertVotes ?? dessertVotes;
                 authorsList = allData?.AuthorsList ?? authorsList;
                 currentWeather = allData?.CurrentWeather ?? currentWeather;
@@ -73,14 +69,19 @@ namespace TodoApi.Controllers
                 allData = new FormData
                 {
                     Files = new string[] {},
-                    DessertVotes = dessertVotes,
-                    CurrentWeather = currentWeather,
-                    AuthorsList = authorsList
+                    DessertVotes = new Dictionary<string, int>()
+                        {
+                            {"Red Velvet Cake", 0},
+                            {"Peach Pie", 0},
+                            {"Lemon Bars", 0}
+                        },
+                    CurrentWeather = "clear",
+                    AuthorsList = new List<Author> {}
                 };
-                var json = JsonSerializer.Serialize(allData);
-                await System.IO.File.WriteAllTextAsync(FilePath, json);
+                await WriteFormDataToFile(allData);
             }
         }
+
         private void IncrementDessertVote(string dessert) {
             if (this.dessertVotes.ContainsKey(dessert))
             {
@@ -93,17 +94,14 @@ namespace TodoApi.Controllers
         }
         public FileController(IOptions<AppSettings> settings)
         {
-            uploadPath = string.IsNullOrEmpty(settings?.Value?.UploadPath) 
-                ? "wwwroot/upload" 
-                : settings.Value.UploadPath;
-
+            uploadPath = settings?.Value?.UploadPath ?? "uploads";
             try
             {
                 InitializeFormTypes().Wait();
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Console.WriteLine($"There was a problem initializing form types: {e.Message}");
             }
         }
 
@@ -111,84 +109,84 @@ namespace TodoApi.Controllers
         [HttpPost]
         public async Task<ActionResult> Post()
         {
-            IFormCollection form = await this.Request.ReadFormAsync();
-            IFormFileCollection files = form.Files;
+            var form = await this.Request.ReadFormAsync();
+            if (form.IsNullOrEmpty()) {
+                return BadRequest();
+            }
+            IFormFileCollection files = new FormFileCollection();
+            if (form.Files.Count > 0) {
+                files = form.Files;
 
-             if (!Directory.Exists(uploadPath)) {
-                Directory.CreateDirectory(uploadPath);
+                foreach (IFormFile file in files)
+                {
+                    // File sanitization 
+                    var fileExtension = Path.GetExtension(file.FileName).ToLower();
+                    var allowedExtensions = new List<string> { ".jpg", ".png", ".gif", ".bmp", ".jpeg", ".txt"}; 
+
+                    if (!allowedExtensions.Contains(fileExtension))
+                    {
+                        continue;
+                    }
+
+                    string path = Path.Combine(uploadPath, file.FileName);
+
+                    using (FileStream stream = new FileStream(path, FileMode.Create))
+                    {
+                        await file.CopyToAsync(stream);
+                    }
+                }
             }
 
-            foreach (IFormFile file in files)
-            {
-                // File sanitization 
-                var fileExtension = Path.GetExtension(file.FileName).ToLower();
-                var allowedExtensions = new List<string> { ".jpg", ".png", ".gif", ".bmp", ".jpeg", ".txt"}; 
-
-                if (!allowedExtensions.Contains(fileExtension))
-                {
-                    continue;
-                }
-
-                string path = Path.Combine(uploadPath, file.FileName);
-
-                using (FileStream stream = new FileStream(path, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream);
-                }
-            }
-
-
-            string uploaderName = form.ContainsKey("uploader") ? form["uploader"] : string.Empty;
-            string desserts = form.ContainsKey("dessert") ? form["dessert"] : string.Empty;
-            string weather = form.ContainsKey("weather") ? form["weather"] : string.Empty;
-            string country = form.ContainsKey("country") ? form["country"] : string.Empty;
+            string? uploaderName = form.ContainsKey("uploader") ? form["uploader"] : string.Empty;
+            string? desserts = form.ContainsKey("dessert") ? form["dessert"] : string.Empty;
+            string? weather = form.ContainsKey("weather") ? form["weather"] : string.Empty;
+            string? country = form.ContainsKey("country") ? form["country"] : string.Empty;
 
             // Split the desserts string into an array of individual desserts
-            string[] dessertArray = desserts.Split(',');
+            string[] strings = desserts.Split(',');
+            string[] dessertArray = strings.Select(s => s.Trim()).ToArray();
 
             // Loop through the array and add each dessert individually
             foreach (var dessert in dessertArray)
             {
-                if (string.IsNullOrEmpty(dessert)) {
-                    continue;
-                } 
-                else {
+                if (!string.IsNullOrEmpty(dessert)) {
                     IncrementDessertVote(dessert);
                 }
             }
             
             // Update the weather
-            currentWeather = weather ?? "clear";
+            if (string.IsNullOrEmpty(weather)) {
+                currentWeather = "clear";
+            } else {
+                currentWeather = weather;
+            }
 
             // If author is new add them, their country of origin and update latest submission timestamp
             if (string.IsNullOrEmpty(uploaderName)) {
                 Console.WriteLine("Uploader name is empty. Skipping author addition.");
             } else {
                 var returnAuthor = authorsList.Find(a => a.Name == uploaderName);
-                if (returnAuthor == null)
+                if (returnAuthor == null && country != null)
                 {
                     authorsList.Add(new Author 
                     { 
-                        Name = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(uploaderName),
-                        CountryOfOrigin = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(country),
+                        Name = uploaderName != null ? CultureInfo.CurrentCulture.TextInfo.ToTitleCase(uploaderName) : string.Empty,
+                        CountryOfOrigin = country != null ? CultureInfo.CurrentCulture.TextInfo.ToTitleCase(country) : string.Empty,
                         LastSubmissionTimestamp = DateTime.Now
                     }); 
                 }
                 else
                 {
                     returnAuthor.LastSubmissionTimestamp = DateTime.Now;
-                    returnAuthor.CountryOfOrigin = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(country);
+                    returnAuthor.CountryOfOrigin = country != null ? CultureInfo.CurrentCulture.TextInfo.ToTitleCase(country) : string.Empty;
                 }
             }
 
             // Update allData before serializing it
-            allData = CreateFormData();
+            allData = CreateFormData(files, dessertVotes, currentWeather, authorsList);
 
-            // Serialize the allData object to JSON
-            var json = JsonSerializer.Serialize(allData);
-
-            // Write the JSON to the file
-            await System.IO.File.WriteAllTextAsync(FilePath, json);
+            // Write the updated data to the file
+            await WriteFormDataToFile(allData);
 
             return Ok();
         }
@@ -197,24 +195,12 @@ namespace TodoApi.Controllers
         [HttpGet]
         public ActionResult<FormData> Get()
         {            
-            if (!Directory.Exists(uploadPath)) {
-                Directory.CreateDirectory(uploadPath);
-                // save the directory path to the appsettings.json
-                var json = JsonSerializer.Serialize(new { UploadPath = uploadPath });
-                System.IO.File.WriteAllText("appsettings.json", json);
-            }
-
-            string[] files = Directory.GetFiles(uploadPath).Select(e => Path.GetFileName(e)).ToArray();
-
-            return new FormData
-            {
-                Files = files,
-                DessertVotes = dessertVotes,
-                CurrentWeather = currentWeather,
-                AuthorsList = authorsList
-            };
+            EnsureDirectoryExists(uploadPath);
+            // save the directory path to the appsettings.json
+            var json = JsonSerializer.Serialize(new { UploadPath = uploadPath });
+            System.IO.File.WriteAllText("appsettings.json", json);
+            return allData;            
         }
     }
-
 }
 

@@ -117,7 +117,6 @@
         });
     }
 
-    // Submit the form
     const submitForm = async (event) => {
         event.preventDefault();
         const form = document.querySelector('#uploadForm');
@@ -126,20 +125,16 @@
         try {
             let data;
             if (ajaxEnabled) {
-                data = await ajaxRequest(file_uri, { method: 'POST', body: formData});
+                data = await ajaxRequest(file_uri, { method: 'POST', body: formData });
                 await getFormData();
             } else {
                 data = await fetchRequest(file_uri, { method: 'POST', body: formData });
-                if (!data) {
-                    console.log('No response body!');
-                } else {
-                    await getFormData();
-                }
             }
         } catch (error) {
             console.error('Error:', error);
+            // Display an error message to the user
         } finally {
-            location.reload();
+            await getFormData();
             form.reset();
         }
     };
