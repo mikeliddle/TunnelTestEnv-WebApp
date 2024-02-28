@@ -192,16 +192,27 @@ namespace TodoApi.Controllers
 
             return Ok();
         }
-
         // GET: api/File
         [HttpGet]
-        public ActionResult<FormData> Get()
-        {            
+        public async Task<ActionResult<FormData>> GetAsync()
+        {
             EnsureDirectoryExists(uploadPath);
-            // save the directory path to the appsettings.json
-            var json = JsonSerializer.Serialize(new { UploadPath = uploadPath });
-            System.IO.File.WriteAllText("appsettings.json", json);
-            return allData;            
+            try
+            {
+                // Read the file and return the data
+                allData = await ReadFormDataFromFile();
+                if (allData == null)
+                {
+                    return NotFound();
+                }
+                return allData;
+            }
+            catch (Exception e)
+            {
+                // Log the exception and return a 500 Internal Server Error status
+                Console.WriteLine(e);
+                return StatusCode(500, "There was a problem reading the form data from the file.");
+            }          
         }
     }
 }
