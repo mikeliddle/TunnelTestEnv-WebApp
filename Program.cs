@@ -5,6 +5,7 @@ using System.Security.Cryptography.X509Certificates;
 
 using CertificateApi.Common;
 using TodoApi.Contexts;
+using FormUpload.Contexts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddDbContext<TodoContext>(opt =>
     opt.UseInMemoryDatabase("TodoList"));
+builder.Services.AddDbContext<FormUploadContext>(opt =>
+opt.UseInMemoryDatabase("FormUpload"));
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();

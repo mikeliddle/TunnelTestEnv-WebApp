@@ -222,7 +222,7 @@ function _displayItems(data) {
 }
 
 function getFiles() {
-  fetch("api/file")
+  fetch("api/formupload")
     .then(response => response.json())
     .then(data => {
       // add all files in data to the datatable

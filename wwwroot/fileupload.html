@@ -71,14 +71,48 @@
                             <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
                             <li class="breadcrumb-item active">File Upload</li>
                         </ol>
+                        <div>
+                            <label>Toggle AJAX: </label>
+                            <label class="switch">
+                                <input type="checkbox" id="ajax-toggle">
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
                         <div class="card mb-4">
                             <div class="card-body">
-                                <iframe name="dummyframe" style="display: none;"></iframe>
-                                <form action="/api/file" id="file_form" method="post" enctype="multipart/form-data" target="dummyframe">
-                                    <label for="file">Filename:</label>
-                                    <input type="file" name="file" id="file"><br>
+                                    <iframe name="dummyframe" style="display: none;"></iframe>
+                                    <form id="uploadForm" target="dummyframe" enctype="multipart/form-data">
+                                        <label for="file">Filename:</label>
+                                    <input type="file" name="file" id="file" multiple><br>
+                                
+                                    <label for="uploader">Uploader:</label>
+                                    <input type="text" id="uploader" name="uploader"><br>
+                                
+                                    <label for="weather">Weather:</label><br>
+                                    <input type="radio" id="sun" name="weather" value="sun">
+                                    <label for="sun">Sun</label><br>
+                                    <input type="radio" id="rain" name="weather" value="rain">
+                                    <label for="rain">Rain</label><br>
+                                    <input type="radio" id="snow" name="weather" value="snow">
+                                    <label for="snow">Snow</label><br>
+                                
+                                    <label for="dessert">Dessert:</label><br>
+                                    <input type="checkbox" id="Chocolate Cookies" name="dessert" value="Chocolate Cookies">
+                                    <label for="Chocolate Cookies">Chocolate Cookies</label><br>
+                                    <input type="checkbox" id="Peach Pie" name="dessert" value="Peach Pie">
+                                    <label for="Peach Pie">Peach Pie</label><br>
+                                    <input type="checkbox" id="Tiramisu" name="dessert" value="Tiramisu">
+                                    <label for="Tiramisu">Tiramisu</label><br>
+
+                                    <label for="country">Country:</label>
+                                    <select id="country" name="country">
+                                        <option value="usa">USA</option>
+                                        <option value="canada">Canada</option>
+                                        <option value="mexico">Mexico</option>
+                                    </select><br>
+                                
                                     <input type="submit" name="submit" value="Submit">
-                                  </form>
+                                </form>
                             </div>
                         </div>
                         <div class="card mb-4">
@@ -87,22 +121,57 @@
                                 Uploaded Files
                             </div>
                             <div class="card-body">
-                                <table id="datatablesSimple">
+                                <table id="filesTable">
                                     <thead>
                                         <tr>
                                             <th>Name</th>
                                         </tr>
                                     </thead>
-                                    <tfoot>
-                                        <tr>
-                                            <th>Name</th>
-                                        </tr>
-                                    </tfoot>
                                     <tbody>
                                     </tbody>
                                 </table>
                             </div>
                         </div>
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="fas fa-table me-1"></i>
+                                Dessert Votes
+                            </div>
+                            <div class="card-body">
+                                <table id="dessertVotesTable">
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="fas fa-table me-1"></i>
+                            </div>
+                            <div class="card-body">
+                                <h1 id="weather-text" style="text-transform: uppercase;"></h1>
+                                <table id="weatherTable">
+                                    <tbody>
+                                        <tr>
+                                            <td><img id="weather-icon" src="" alt="Weather icon" /></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="fas fa-table me-1"></i>
+                                Authors
+                            </div>
+                            <div class="card-body">
+                                <table id="authorsList">
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
                     </div>
                 </main>
                 <footer class="py-4 bg-light mt-auto">
@@ -122,6 +191,6 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
         <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js" crossorigin="anonymous"></script>
         <script src="js/site.js"></script>
-        <script>getFiles();</script>
+        <script src="js/formSubmit.js"></script>
     </body>
 </html>
