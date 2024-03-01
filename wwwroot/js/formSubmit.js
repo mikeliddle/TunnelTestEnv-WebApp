@@ -1,7 +1,7 @@
     
     
     // Global variables
-    const file_uri = '/api/file';
+    const form_uri = '/api/formupload';
     // Helper function to create a table row
     const createTableRow = (table, values) => {
         const row = table.insertRow();
@@ -14,69 +14,68 @@
     // Update the DOM with the fetched data
     function updateDOM(data) {
         if (data) {
-                const filesTable = document.getElementById('filesTable').getElementsByTagName('tbody')[0];
-                filesTable.innerHTML = '';
-                data.files.forEach((file) => {
+            const filesTable = document.getElementById('filesTable').getElementsByTagName('tbody')[0];
+            filesTable.innerHTML = '';
+            data.files.forEach(file => {
                 createTableRow(filesTable, [file]);
-                });
+            });
+            const dessertVotesTable = document.getElementById('dessertVotesTable').getElementsByTagName('tbody')[0];
+            dessertVotesTable.innerHTML = '';
+            let formData = data.formData[0];
+            formData.dessertVotes.forEach(vote => {
+                createTableRow(dessertVotesTable, [vote.dessert, vote.votes]);
+            });
+            const authorsList = document.getElementById('authorsList');
+            if (!formData.authorsList || formData.authorsList.length === 0) {
+                console.log('authorsList is empty');
+            } 
+            else 
+            {
+                authorsList.innerHTML = '';
         
-                const dessertVotesTable = document.getElementById('dessertVotesTable').getElementsByTagName('tbody')[0];
-                dessertVotesTable.innerHTML = '';
-                Object.entries(data.dessertVotes).forEach(([dessert, votes]) => {
-                    createTableRow(dessertVotesTable, [dessert, votes]);
-                });
+                const thead = document.createElement('thead');
+                const headerRow = thead.insertRow();
+                const headers = ['Author', 'Country of Origin', 'Latest Update'];
+                for (let header of headers) {
+                    const th = document.createElement('th');
+                    th.innerText = header;
+                    headerRow.appendChild(th);
+                }
+                authorsList.appendChild(thead);
         
-                const authorsList = document.getElementById('authorsList');
-                if (!data.authorsList || data.authorsList.length === 0) {
-                    console.log('authorsList is empty');
-                } 
-                else 
-                {
-                    authorsList.innerHTML = '';
-            
-                    const thead = document.createElement('thead');
-                    const headerRow = thead.insertRow();
-                    const headers = ['Author', 'Country of Origin', 'Latest Update'];
-                    for (let header of headers) {
-                        const th = document.createElement('th');
-                        th.innerText = header;
-                        headerRow.appendChild(th);
-                    }
-                    authorsList.appendChild(thead);
-            
-                    const tbody = document.createElement('tbody');
-                    for (let author of data.authorsList) {
-                        const date = new Date(author.lastSubmissionTimestamp);
-                        createTableRow(tbody, [author.name, author.countryOfOrigin, date.toLocaleString()]);
-                    }
-                    authorsList.appendChild(tbody);
+                const tbody = document.createElement('tbody');
+                for (let author of formData.authorsList) {
+                    const date = new Date(author.lastSubmissionTimestamp);
+                    createTableRow(tbody, [author.name, author.countryOfOrigin, date.toLocaleString()]);
                 }
-
-                // Weather
-                let weather = data.currentWeather;
-                let iconSrc;
-                switch (weather) {
-                    case 'rain':
-                        iconSrc = '../rain.jpeg';
-                        break;
-                    case 'sun':
-                        iconSrc = '../sun.jpeg';
-                        break;
-                    case 'snow':
-                        iconSrc = '../snow.jpeg';
-                        break;
-                    default:
-                        weather = 'clear';
-                        iconSrc = '../clear.jpeg';
-                        break;
-                }
-                document.getElementById('weather-icon').src = iconSrc;
-                document.getElementById('weather-text').innerText = weather;
+                authorsList.appendChild(tbody);
             }
-             else 
-             {
-                console.log('No data');
-             }
+
+            // Weather
+            let weather = formData.currentWeather;
+            let iconSrc;
+            switch (weather) {
+                case 'rain':
+                    iconSrc = '../rain.jpeg';
+                    break;
+                case 'sun':
+                    iconSrc = '../sun.jpeg';
+                    break;
+                case 'snow':
+                    iconSrc = '../snow.jpeg';
+                    break;
+                default:
+                    weather = 'clear';
+                    iconSrc = '../clear.jpeg';
+                    break;
+            }
+            document.getElementById('weather-icon').src = iconSrc;
+            document.getElementById('weather-text').innerText = weather;
+        }
+            else 
+            {
+            console.log('No data');
+            }
     };
     
     async function fetchRequest(url, options = {}) {
@@ -85,7 +84,14 @@
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            return await response.json();
+            // Check if the response has any content
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                return await response.json();
+            } else {
+                // If there's no content, return a default object or value
+                return {};
+            }
         } catch (error) {
             console.error('There was a problem with the fetch operation: ', error);
         }
@@ -118,6 +124,10 @@
     }
 
     const submitForm = async (event) => {
+        if (!event){
+            console.error('No event');
+            return;
+        }
         event.preventDefault();
         const form = document.querySelector('#uploadForm');
         const formData = new FormData(form);
@@ -125,10 +135,10 @@
         try {
             let data;
             if (ajaxEnabled) {
-                data = await ajaxRequest(file_uri, { method: 'POST', body: formData });
+                data = await ajaxRequest(form_uri, { method: 'POST', body: formData });
                 await getFormData();
             } else {
-                data = await fetchRequest(file_uri, { method: 'POST', body: formData });
+                data = await fetchRequest(form_uri, { method: 'POST', body: formData });
             }
         } catch (error) {
             console.error('Error:', error);
@@ -144,9 +154,9 @@
         try {
             let data;
             if (ajaxEnabled) {
-                data = await ajaxRequest(file_uri);
+                data = await ajaxRequest(form_uri);
             } else {
-                data = await fetchRequest(file_uri);
+                data = await fetchRequest(form_uri);
             }
             updateDOM(data);
         } catch (error) {
