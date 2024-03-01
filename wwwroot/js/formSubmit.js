@@ -16,17 +16,25 @@
         if (data) {
             const filesTable = document.getElementById('filesTable').getElementsByTagName('tbody')[0];
             filesTable.innerHTML = '';
-            data.files.forEach(file => {
-                createTableRow(filesTable, [file]);
-            });
+            if (!data.files || data.files.length === 0) {
+                console.log('files is empty');
+            } else {
+                data.files.forEach(file => {
+                    createTableRow(filesTable, [file]);
+                });
+            }
             const dessertVotesTable = document.getElementById('dessertVotesTable').getElementsByTagName('tbody')[0];
             dessertVotesTable.innerHTML = '';
-            let formData = data.formData[0];
-            formData.dessertVotes.forEach(vote => {
-                createTableRow(dessertVotesTable, [vote.dessert, vote.votes]);
-            });
+            let storedFormData = data.storedFormData[0];
+            if (!storedFormData.dessertVotes || storedFormData.dessertVotes.length === 0) {
+                console.log('dessertVotes is empty');
+            } else {
+                storedFormData.dessertVotes.forEach(vote => {
+                    createTableRow(dessertVotesTable, [vote.dessert, vote.votes]);
+                });
+            }
             const authorsList = document.getElementById('authorsList');
-            if (!formData.authorsList || formData.authorsList.length === 0) {
+            if (!storedFormData.authorsList || storedFormData.authorsList.length === 0) {
                 console.log('authorsList is empty');
             } 
             else 
@@ -44,7 +52,7 @@
                 authorsList.appendChild(thead);
         
                 const tbody = document.createElement('tbody');
-                for (let author of formData.authorsList) {
+                for (let author of storedFormData.authorsList) {
                     const date = new Date(author.lastSubmissionTimestamp);
                     createTableRow(tbody, [author.name, author.countryOfOrigin, date.toLocaleString()]);
                 }
@@ -52,7 +60,7 @@
             }
 
             // Weather
-            let weather = formData.currentWeather;
+            let weather = storedFormData.currentWeather;
             let iconSrc;
             switch (weather) {
                 case 'rain':

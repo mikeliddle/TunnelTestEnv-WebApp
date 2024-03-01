@@ -72,18 +72,18 @@ namespace FormUpload.Controllers
 
             // Handle file uploads
             IFormFileCollection files = new FormFileCollection();
-            if (form.Files.Count > 0) {
-                files = form.Files;
+            var allowedExtensions = new List<string> { ".jpg", ".png", ".gif", ".bmp", ".jpeg", ".txt"}; 
 
+            if (form.Files.Count > 0) {
+
+                files = form.Files;
                 foreach (IFormFile file in files)
                 {
                     // File sanitization 
                     var fileExtension = Path.GetExtension(file.FileName).ToLower();
-                    var allowedExtensions = new List<string> { ".jpg", ".png", ".gif", ".bmp", ".jpeg", ".txt"}; 
-
                     if (!allowedExtensions.Contains(fileExtension))
                     {
-                        continue;
+                        continue; // Skip the file if the extension is not allowed
                     }
 
                     string fileName = Path.GetFileNameWithoutExtension(file.FileName);
@@ -148,9 +148,9 @@ namespace FormUpload.Controllers
         public async Task<ActionResult<FormData>> GetAsync()
         {
             // Instead of reading from a file, get the data from the database
-            var formData = await _context.FormData.ToListAsync();
+            var storedFormData = await _context.FormData.ToListAsync();
 
-            if (formData == null || !formData.Any())
+            if (storedFormData == null || !storedFormData.Any())
             {
                 return NotFound();
             }
@@ -161,7 +161,7 @@ namespace FormUpload.Controllers
             // Add the list of files to the response
             var response = new
             {
-                formData,
+                storedFormData,
                 files
             };
 
