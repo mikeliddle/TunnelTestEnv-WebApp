@@ -72,7 +72,7 @@ namespace FormUpload.Controllers
 
             // Handle file uploads
             IFormFileCollection files = new FormFileCollection();
-            var allowedExtensions = new List<string> { ".jpg", ".png", ".gif", ".bmp", ".jpeg", ".txt"}; 
+            var allowedExtensions = new List<string> { ".pdf",".doc",".rtf",".jpg", ".png", ".gif", ".bmp", ".jpeg", ".txt"}; 
 
             if (form.Files.Count > 0) {
 
