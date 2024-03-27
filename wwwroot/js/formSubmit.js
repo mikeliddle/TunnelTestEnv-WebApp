@@ -182,6 +182,26 @@
         }
     };
 
+    const clearData = async () => {
+        // Clear data from the DOM
+        const filesTable = document.getElementById('filesTable').getElementsByTagName('tbody')[0];
+        filesTable.innerHTML = '';
+    
+        const dessertVotesTable = document.getElementById('dessertVotesTable').getElementsByTagName('tbody')[0];
+        dessertVotesTable.innerHTML = '';
+    
+        const authorsList = document.getElementById('authorsList');
+        authorsList.innerHTML = '';
+    
+        document.getElementById('weather-icon').src = '';
+        document.getElementById('weather-text').innerText = '';
+    
+        await fetchRequest(form_uri, { method: 'DELETE' });
+    };
+
     // Main //
     document.addEventListener('DOMContentLoaded', setupEventListeners);
+    document.getElementById('clearDataButton').addEventListener('click', function() {
+        clearData();
+    });
     getFormData();
