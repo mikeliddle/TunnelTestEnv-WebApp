@@ -167,6 +167,34 @@ namespace FormUpload.Controllers
 
             return Ok(response);
         }
+
+        // DELETE: api/formupload
+        [HttpDelete]
+        public async Task<ActionResult> ResetAll()
+        {
+            // Get the FormData object
+            var formData = await _context.FormData.FirstOrDefaultAsync();
+
+            if (formData != null)
+            {
+                // Reset the properties of the FormData object
+                formData.Reset();
+
+                // Update the FormData object in the context and save changes to the database
+                _context.FormData.Update(formData);
+                await _context.SaveChangesAsync();
+            }
+
+            // Delete all files from the "uploads" directory
+            DirectoryInfo di = new DirectoryInfo(uploadPath);
+            foreach (FileInfo file in di.GetFiles())
+            {
+                file.Delete();
+            }
+
+            // Return a success response
+            return Ok("All data and files have been reset.");
+        }
     }
 }
 
