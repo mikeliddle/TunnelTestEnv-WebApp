@@ -15,7 +15,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.2" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageReference Include="Microsoft.AspNetCore.HttpOverrides" Version="2.2.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.Certificate" Version="8.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Certificate" Version="8.0.3" />
     <!--The Below Package(s) are included simply to upgrade them instead of pulling a vulnerable default-->
     <PackageReference Include="System.Drawing.Common" Version="8.0.3" />
   </ItemGroup>
