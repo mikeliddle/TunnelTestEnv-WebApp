@@ -108,5 +108,16 @@ namespace FormUpload.Models
         {
             CurrentWeather = weather;
         }
+        // Reset the form data, not the ID though
+        public void Reset()
+        {
+            DessertVotes = new List<DessertVote> {
+                new DessertVote { Dessert = "Chocolate Cookies", Votes = 0 },
+                new DessertVote { Dessert = "Peach Pie", Votes = 0 },
+                new DessertVote { Dessert = "Tiramisu", Votes = 0 }
+            };
+            CurrentWeather = "clear";
+            AuthorsList = new List<Author> {};
+        }
     }
 }

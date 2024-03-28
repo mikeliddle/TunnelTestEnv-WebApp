@@ -197,6 +197,9 @@
         document.getElementById('weather-text').innerText = '';
     
         await fetchRequest(form_uri, { method: 'DELETE' });
+    
+        // Fetch the updated data from the server
+        await getFormData();
     };
 
     // Main //
